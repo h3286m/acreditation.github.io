@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アクセスコントロール 判定シミュレーター</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --primary: #2563eb;
+            --red-zone: #dc2626;
+            --blue-zone: #2563eb;
+            --white-zone: #4b5563;
+            --disabled-bg: #f3f4f6;
+            --disabled-text: #9ca3af;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        p.subtitle {
+            font-size: 0.85rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #4b5563;
+        }
+        
+        /* カード条件選択エリア */
+        .selectors-container {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .zone-selectors {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .zone-btn {
+            padding: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .zone-btn.blue { background-color: var(--blue-zone); }
+        .zone-btn.red { background-color: var(--red-zone); }
+        .zone-btn.white { background-color: var(--white-zone); }
+        .zone-btn.inactive { opacity: 0.3; border-color: #cbd5e1; }
+
+        .num-selectors {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .num-sel-btn {
+            padding: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .num-sel-btn.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .seat-selectors {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+        }
+        .seat-sel-btn {
+            padding: 6px 2px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .seat-sel-btn.active {
+            background-color: #059669;
+            color: white;
+            border-color: #059669;
+        }
+
+        /* メイン表示レイアウト（左：ポップ、右：カード画像） */
+        .display-layout {
+            display: grid;
+            grid-template-columns: 1fr 220px;
+            gap: 16px;
+            align-items: start;
+        }
+        @media (max-width: 600px) {
+            .display-layout { grid-template-columns: 1fr; }
+        }
+
+        /* ポップ表示エリア */
+        .pop-card {
+            border: 3px solid #333;
+            border-radius: 8px;
+            padding: 14px;
+            background: #fff;
+        }
+        .pop-header {
+            background: var(--red-zone);
+            color: white;
+            padding: 8px 10px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .pop-section {
+            margin-bottom: 10px;
+        }
+        .pop-section-label {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #6b7280;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .color-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .num-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .seat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+
+        .pop-item {
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            padding: 10px 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            background: #fff;
+            color: #333;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .seat-item { padding: 8px 2px; font-size: 0.8rem; }
+
+        .pop-item.disabled {
+            background-color: var(--disabled-bg);
+            color: var(--disabled-text);
+            border-color: #e5e7eb;
+            text-decoration: line-through;
+        }
+        .pop-item.disabled::after {
+            content: "×";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: rgba(220, 38, 38, 0.6);
+            line-height: 1;
+        }
+
+        /* サンプルカード画像プレビュー */
+        .card-preview-box {
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f8fafc;
+            text-align: center;
+        }
+        .card-preview-box img {
+            width: 100%;
+            max-height: 280px;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .preview-label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #4b5563;
+            margin-bottom: 6px;
+        }
+
+        .info-box {
+            margin-top: 16px;
+            padding: 12px;
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+            font-size: 0.85rem;
+            color: #1e40af;
+            border-radius: 4px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>アクセスコントロール 判定シミュレーター</h1>
+    <p class="subtitle">条件を選択すると、ポップの判定結果と一致するカードサンプル画像が自動で表示されます</p>
+
+    <div class="selectors-container">
+        <!-- 1. カラー選択 -->
+        <div class="section-title">1. ベースカラーを選択：</div>
+        <div class="zone-selectors">
+            <button class="zone-btn blue" id="btn-BLUE" onclick="selectCardColor('BLUE')">BLUE</button>
+            <button class="zone-btn red" id="btn-RED" onclick="selectCardColor('RED')">RED</button>
+            <button class="zone-btn white" id="btn-WHITE" onclick="selectCardColor('WHITE')">WHITE</button>
+        </div>
+
+        <!-- 2. 数値特権選択 -->
+        <div class="section-title">2. 数値特権を選択（複数可）：</div>
+        <div class="num-selectors">
+            <button class="num-sel-btn" id="num-btn-2" onclick="toggleCardNum('2')">2</button>
+            <button class="num-sel-btn" id="num-btn-4" onclick="toggleCardNum('4')">4</button>
+            <button class="num-sel-btn" id="num-btn-5" onclick="toggleCardNum('5')">5</button>
+            <button class="num-sel-btn" id="num-btn-6" onclick="toggleCardNum('6')">6</button>
+        </div>
+
+        <!-- 3. シート種別選択 -->
+        <div class="section-title">3. シート種別を選択：</div>
+        <div class="seat-selectors">
+            <button class="seat-sel-btn" id="seat-btn-VIP" onclick="selectCardSeat('VIP')">VIP</button>
+            <button class="seat-sel-btn" id="seat-btn-F" onclick="selectCardSeat('F')">F</button>
+            <button class="seat-sel-btn" id="seat-btn-A" onclick="selectCardSeat('A')">A</button>
+            <button class="seat-sel-btn" id="seat-btn-P" onclick="selectCardSeat('P')">P</button>
+            <button class="seat-sel-btn" id="seat-btn-B" onclick="selectCardSeat('B')">B</button>
+            <button class="seat-sel-btn active" id="seat-btn-NONE" onclick="selectCardSeat('')">なし</button>
+        </div>
+    </div>
+
+    <!-- メイン表示エリア（ポップ ＆ カード画像） -->
+    <div class="display-layout">
+        <!-- ポップ模擬表示 -->
+        <div class="pop-card">
+            <div class="pop-header" id="popHeaderTitle">ACP 判定結果</div>
+            
+            <!-- 1段目：カラー区分 -->
+            <div class="pop-section">
+                <div class="pop-section-label">--- カラー区分 ---</div>
+                <div class="color-grid">
+                    <div class="pop-item color-item" data-target="BLUE">BLUE</div>
+                    <div class="pop-item color-item" data-target="RED">RED</div>
+                    <div class="pop-item color-item" data-target="WHITE">WHITE</div>
+                </div>
+            </div>
+
+            <!-- 2段目：数値区分 -->
+            <div class="pop-section">
+                <div class="pop-section-label">--- 数値区分 ---</div>
+                <div class="num-grid">
+                    <div class="pop-item num-item" data-target="2">2</div>
+                    <div class="pop-item num-item" data-target="4">4</div>
+                    <div class="pop-item num-item" data-target="5">5</div>
+                    <div class="pop-item num-item" data-target="6">6</div>
+                </div>
+            </div>
+
+            <!-- 3段目：シート区分 -->
+            <div class="pop-section">
+                <div class="pop-section-label">--- シート種別 ---</div>
+                <div class="seat-grid">
+                    <div class="pop-item seat-item" data-target="VIP">VIP</div>
+                    <div class="pop-item seat-item" data-target="F">F</div>
+                    <div class="pop-item seat-item" data-target="A">A</div>
+                    <div class="pop-item seat-item" data-target="P">P</div>
+                    <div class="pop-item seat-item" data-target="B">B</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 一致するカード画像プレビュー -->
+        <div class="card-preview-box">
+            <div class="preview-label" id="previewLabel">一致するカード画像</div>
+            <img id="cardImage" src="" alt="一致するカード画像なし" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'><rect width=\'100%\' height=\'100%\' fill=\'%23f1f5f9\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%2394a3b8\' font-size=\'11\'>該当サンプルなし</text></svg>'">
+        </div>
+    </div>
+
+    <div class="info-box" id="infoText">
+        条件を選択してください。
+    </div>
+</div>
+
+<script>
+    let currentCardColor = 'BLUE';
+    let activeCardNums = ['2'];
+    let currentCardSeat = 'A';
+
+    const colorHierarchy = {
+        'BLUE': ['BLUE', 'RED', 'WHITE'],
+        'RED': ['RED', 'WHITE'],
+        'WHITE': ['WHITE']
+    };
+
+    // 条件に一致するサンプル画像の定義
+    const sampleCards = [
+        { color: 'BLUE', nums: ['2'], seat: 'A', name: '選手', img: 'acr_athlete.png' },
+        { color: 'WHITE', nums: ['4'], seat: 'P', name: 'ジャーナリスト', img: 'acr_journalist.png' },
+        { color: 'BLUE', nums: ['2', '4', '5', '6'], seat: 'VIP', name: '選手団団長 / OCA会長', img: 'acr_noc.png' },
+        { color: 'RED', nums: ['4', '5', '6'], seat: '', name: 'オブザーバー', img: 'acr_observer.png' },
+        { color: 'RED', nums: [], seat: '', name: 'プレステージパートナー', img: 'acr_partner.png' }
+    ];
+
+    function selectCardColor(color) {
+        currentCardColor = color;
+        updateUI();
+    }
+
+    function toggleCardNum(num) {
+        const index = activeCardNums.indexOf(num);
+        if (index > -1) activeCardNums.splice(index, 1);
+        else activeCardNums.push(num);
+        updateUI();
+    }
+
+    function selectCardSeat(seat) {
+        currentCardSeat = seat;
+        updateUI();
+    }
+
+    function updateUI() {
+        // ボタン状態更新
+        ['BLUE', 'RED', 'WHITE'].forEach(c => {
+            const btn = document.getElementById(`btn-${c}`);
+            if (c === currentCardColor) btn.classList.remove('inactive');
+            else btn.classList.add('inactive');
+        });
+
+        ['2', '4', '5', '6'].forEach(n => {
+            const btn = document.getElementById(`num-btn-${n}`);
+            if (activeCardNums.includes(n)) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+
+        ['VIP', 'F', 'A', 'P', 'B'].forEach(s => {
+            const btn = document.getElementById(`seat-btn-${s}`);
+            if (s === currentCardSeat) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        const noneBtn = document.getElementById(`seat-btn-NONE`);
+        if (currentCardSeat === '') noneBtn.classList.add('active');
+        else noneBtn.classList.remove('active');
+
+        // ポップの有効/無効判定
+        const allowedColors = colorHierarchy[currentCardColor] || [];
+
+        document.querySelectorAll('.color-item').forEach(el => {
+            const target = el.getAttribute('data-target');
+            if (allowedColors.includes(target)) el.classList.remove('disabled');
+            else el.classList.add('disabled');
+        });
+
+        document.querySelectorAll('.num-item').forEach(el => {
+            const target = el.getAttribute('data-target');
+            if (activeCardNums.includes(target)) el.classList.remove('disabled');
+            else el.classList.add('disabled');
+        });
+
+        document.querySelectorAll('.seat-item').forEach(el => {
+            const target = el.getAttribute('data-target');
+            if (target === currentCardSeat) el.classList.remove('disabled');
+            else el.classList.add('disabled');
+        });
+
+        // 選択された条件に一致するサンプル画像を検索
+        const matchedCard = sampleCards.find(card => {
+            if (card.color !== currentCardColor) return false;
+            if (card.seat !== currentCardSeat) return false;
+            // 数値配列が完全に一致するか比較
+            const sortedCardNums = [...card.nums].sort().join(',');
+            const sortedActiveNums = [...activeCardNums].sort().join(',');
+            return sortedCardNums === sortedActiveNums;
+        });
+
+        const imgEl = document.getElementById('cardImage');
+        const labelEl = document.getElementById('previewLabel');
+
+        if (matchedCard) {
+            imgEl.src = matchedCard.img;
+            labelEl.innerText = `一致: ${matchedCard.name}`;
+        } else {
+            imgEl.src = '';
+            labelEl.innerText = '一致するサンプル画像なし';
+        }
+
+        let seatNote = "";
+        if (currentCardSeat === '') {
+            seatNote = "<br>⚠️ <strong>【備考】</strong> シート（客席）権限が割り当てられていないため、<strong>一般観覧席には座れません</strong>。";
+        } else {
+            seatNote = `<br>ℹ️ <strong>【備考】</strong> 選択されたシート種別（<strong>${currentCardSeat}</strong>）に対応する客席の利用が可能です[cite: 10]。`;
+        }
+
+        document.getElementById('infoText').innerHTML = `
+            <strong>【判定結果】</strong> [ ベースカラー: <strong>${currentCardColor}</strong> ｜ 数値特権: <strong>${activeCardNums.length > 0 ? activeCardNums.join(', ') : 'なし'}</strong> ｜ シート: <strong>${currentCardSeat || 'なし'}</strong> ]
+            ${seatNote}
+        `;
+    }
+
+    // 初期実行（例：選手）
+    window.onload = function() {
+        selectCardColor('BLUE');
+        activeCardNums = ['2'];
+        currentCardSeat = 'A';
+        updateUI();
+    };
+</script>
+
+</body>
+</html>

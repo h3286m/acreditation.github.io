@@ -80,13 +80,13 @@
 
         .num-selectors {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
             margin-bottom: 14px;
         }
         .num-sel-btn {
-            padding: 8px;
-            font-size: 0.9rem;
+            padding: 8px 2px;
+            font-size: 0.85rem;
             font-weight: bold;
             border: 2px solid #cbd5e1;
             border-radius: 6px;
@@ -249,12 +249,13 @@
         </div>
 
         <!-- 2. 数値特権選択 -->
-        <div class="section-title">2. 数値特権を選択（複数可）：</div>
+        <div class="section-title">2. 数値特権を選択（複数可、または「なし」）：</div>
         <div class="num-selectors">
             <button class="num-sel-btn" id="num-btn-2" onclick="toggleCardNum('2')">2</button>
             <button class="num-sel-btn" id="num-btn-4" onclick="toggleCardNum('4')">4</button>
             <button class="num-sel-btn" id="num-btn-5" onclick="toggleCardNum('5')">5</button>
             <button class="num-sel-btn" id="num-btn-6" onclick="toggleCardNum('6')">6</button>
+            <button class="num-sel-btn" id="num-btn-NONE" onclick="clearCardNums()">なし</button>
         </div>
 
         <!-- 3. シート種別選択 -->
@@ -353,6 +354,11 @@
         updateUI();
     }
 
+    function clearCardNums() {
+        activeCardNums = [];
+        updateUI();
+    }
+
     function selectCardSeat(seat) {
         currentCardSeat = seat;
         updateUI();
@@ -371,15 +377,18 @@
             if (activeCardNums.includes(n)) btn.classList.add('active');
             else btn.classList.remove('active');
         });
+        const numNoneBtn = document.getElementById(`num-btn-NONE`);
+        if (activeCardNums.length === 0) numNoneBtn.classList.add('active');
+        else numNoneBtn.classList.remove('active');
 
         ['VIP', 'F', 'A', 'P', 'B'].forEach(s => {
             const btn = document.getElementById(`seat-btn-${s}`);
             if (s === currentCardSeat) btn.classList.add('active');
             else btn.classList.remove('active');
         });
-        const noneBtn = document.getElementById(`seat-btn-NONE`);
-        if (currentCardSeat === '') noneBtn.classList.add('active');
-        else noneBtn.classList.remove('active');
+        const seatNoneBtn = document.getElementById(`seat-btn-NONE`);
+        if (currentCardSeat === '') seatNoneBtn.classList.add('active');
+        else seatNoneBtn.classList.remove('active');
 
         // ポップの有効/無効判定
         const allowedColors = colorHierarchy[currentCardColor] || [];
@@ -406,7 +415,6 @@
         const matchedCard = sampleCards.find(card => {
             if (card.color !== currentCardColor) return false;
             if (card.seat !== currentCardSeat) return false;
-            // 数値配列が完全に一致するか比較
             const sortedCardNums = [...card.nums].sort().join(',');
             const sortedActiveNums = [...activeCardNums].sort().join(',');
             return sortedCardNums === sortedActiveNums;

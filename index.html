@@ -416,7 +416,6 @@
         { color: 'RED', nums: [], seat: '', name: 'プレステージパートナー', img: 'acr_partner.png' }
     ];
 
-    // タブ切り替え関数
     function switchMode(mode) {
         currentMode = mode;
         document.getElementById('tab-pop').classList.toggle('active', mode === 'pop');
@@ -448,9 +447,20 @@
         updateUI();
     }
 
-    // 画面全体・ポップ・逆引きのリアルタイム同期更新
+    // 現在の条件に一致する「想定される着用・担当者（事例）」を判定する関数
+    function getMatchedExample(color, nums, seat) {
+        const numStr = [...nums].sort().join(',');
+        if (color === 'WHITE' && numStr === '4' && seat === 'P') return 'ジャーナリスト、記者、フォトグラファーなど';
+        if (color === 'WHITE' && numStr === '' && seat === '') return '警備員、交通誘導員、一般スタッフなど';
+        if (color === 'RED' && numStr === '2' && seat === '') return '音響スタッフ、会場エンジニア、舞台運営スタッフなど';
+        if (color === 'BLUE' && numStr === '2' && seat === 'A') return '選手、チーム関係者など';
+        if (color === 'BLUE' && numStr === '2,4,5,6' && seat === 'VIP') return '選手団団長、OCA会長、要人関係者など';
+        if (color === 'RED' && numStr === '4,5,6' && seat === '') return 'オブザーバー、大会監視員など';
+        if (color === 'RED' && numStr === '' && seat === '') return 'プレステージパートナー、スポンサー関係者など';
+        return '該当する特定事例（一般・その他スタッフ等）';
+    }
+
     function updateUI() {
-        // ボタン見た目の同期
         ['BLUE', 'RED', 'WHITE'].forEach(c => {
             const btn = document.getElementById(`btn-${c}`);
             if (c === currentCardColor) btn.classList.remove('inactive');
@@ -475,7 +485,6 @@
         if (currentCardSeat === '') seatNoneBtn.classList.add('active');
         else seatNoneBtn.classList.remove('active');
 
-        // ポップ判定の更新
         const allowedColors = colorHierarchy[currentCardColor] || [];
 
         document.querySelectorAll('.color-item').forEach(el => {
@@ -496,7 +505,6 @@
             else el.classList.add('disabled');
         });
 
-        // サンプル画像検索・更新
         const matchedCard = sampleCards.find(card => {
             if (card.color !== currentCardColor) return false;
             if (card.seat !== currentCardSeat) return false;
@@ -512,19 +520,20 @@
             labelEl.innerText = `一致: ${matchedCard.name}`;
         } else {
             imgEl.src = '';
-            labelEl.innerText = '一致するサンプル画像なし';
+            labelEl.innerText = '一致するサンプルなし';
         }
 
-        // 逆引き判定の更新
         generateReverseResults();
 
-        // 備考文言の更新
+        const exampleText = getMatchedExample(currentCardColor, activeCardNums, currentCardSeat);
+
         let seatNote = currentCardSeat === '' ? 
             "<br>⚠️ <strong>【備考】</strong> シート権限がないため、<strong>観覧席には座れません</strong>。" : 
             `<br>ℹ️ <strong>【備考】</strong> シート種別（<strong>${currentCardSeat}</strong>）の観覧席利用が可能です[cite: 10]。`;
 
         document.getElementById('infoText').innerHTML = `
-            <strong>【現在の設定】</strong> [ カラー: <strong>${currentCardColor}</strong> ｜ 数値エリア: <strong>${activeCardNums.length > 0 ? activeCardNums.join(', ') : 'なし'}</strong> ｜ シート: <strong>${currentCardSeat || 'なし'}</strong> ]
+            <strong>【現在の設定】</strong> [ カラー: <strong>${currentCardColor}</strong> ｜ 数値エリア: <strong>${activeCardNums.length > 0 ? activeCardNums.join(', ') : 'なし'}</strong> ｜ シート: <strong>${currentCardSeat || 'なし'}</strong> ]<br>
+            👤 <strong>想定される事例・役割:</strong> ${exampleText}
             ${seatNote}
         `;
     }
@@ -532,6 +541,9 @@
     function generateReverseResults() {
         const container = document.getElementById('reverseResultContent');
         let html = '<ul class="acp-list">';
+
+        const exampleText = getMatchedExample(currentCardColor, activeCardNums, currentCardSeat);
+        html += `<li class="acp-item" style="border-left-color: #059669; background: #ecfdf5;"><strong>👤 想定される事例・役割</strong>${exampleText}</li>`;
 
         let accessibleAreas = [];
         if (currentCardColor === 'BLUE') accessibleAreas.push('BLUE（競技ゾーン）および下位のRED・WHITEエリア全般[cite: 4, 5]');
@@ -562,7 +574,6 @@
         container.innerHTML = html;
     }
 
-    // 初期化実行
     window.onload = function() {
         selectCardColor('BLUE');
         activeCardNums = ['2'];

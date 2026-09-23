@@ -68,7 +68,7 @@
         .mode-tab.active {
             background: #ffffff;
             color: var(--primary);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
         }
 
         .section-title {
@@ -152,7 +152,7 @@
             border-color: #059669;
         }
 
-        /* パネル切り替え */
+        /* パネル表示切替 */
         .panel { display: none; }
         .panel.active { display: block; }
 
@@ -245,17 +245,19 @@
             margin: 0;
         }
         .acp-item {
-            padding: 10px 12px;
-            margin-bottom: 8px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
             border-radius: 6px;
             border-left: 5px solid var(--primary);
             background: #f8fafc;
             font-size: 0.9rem;
+            line-height: 1.5;
         }
         .acp-item strong {
             display: block;
             color: #1e40af;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
         }
 
         /* サンプルカード画像プレビュー */
@@ -296,7 +298,7 @@
 
 <div class="container">
     <h1>アクセスコントロール 判定・逆引きツール</h1>
-    <p class="subtitle">モードを切り替えて、ポップ判定とACP逆引きを確認できます</p>
+    <p class="subtitle">タブを切り替えて「ポップ判定」と「該当ACP逆引き」を瞬時に確認できます</p>
 
     <!-- モード切り替えタブ -->
     <div class="mode-tabs">
@@ -379,12 +381,12 @@
         </div>
     </div>
 
-    <!-- モード2：逆引きパネル -->
+    <!-- モード2：該当ACP 逆引きパネル -->
     <div class="panel" id="panel-reverse">
         <div class="reverse-result-box">
-            <div class="pop-header" style="margin-bottom: 12px;">🗺️ 通行可能なACP・エリア逆引き結果</div>
+            <div class="pop-header" style="margin-bottom: 12px; background: #1e40af;">🗺️ 通行可能なACP・エリア逆引き結果</div>
             <div id="reverseResultContent">
-                <!-- 動的に挿入 -->
+                <!-- 動的に生成 -->
             </div>
         </div>
     </div>
@@ -414,6 +416,7 @@
         { color: 'RED', nums: [], seat: '', name: 'プレステージパートナー', img: 'acr_partner.png' }
     ];
 
+    // タブ切り替え関数
     function switchMode(mode) {
         currentMode = mode;
         document.getElementById('tab-pop').classList.toggle('active', mode === 'pop');
@@ -445,8 +448,9 @@
         updateUI();
     }
 
+    // 画面全体・ポップ・逆引きのリアルタイム同期更新
     function updateUI() {
-        // 共通ボタン状態更新
+        // ボタン見た目の同期
         ['BLUE', 'RED', 'WHITE'].forEach(c => {
             const btn = document.getElementById(`btn-${c}`);
             if (c === currentCardColor) btn.classList.remove('inactive');
@@ -471,9 +475,9 @@
         if (currentCardSeat === '') seatNoneBtn.classList.add('active');
         else seatNoneBtn.classList.remove('active');
 
+        // ポップ判定の更新
         const allowedColors = colorHierarchy[currentCardColor] || [];
 
-        // ポップ判定側の更新
         document.querySelectorAll('.color-item').forEach(el => {
             const target = el.getAttribute('data-target');
             if (allowedColors.includes(target)) el.classList.remove('disabled');
@@ -492,7 +496,7 @@
             else el.classList.add('disabled');
         });
 
-        // サンプル画像検索
+        // サンプル画像検索・更新
         const matchedCard = sampleCards.find(card => {
             if (card.color !== currentCardColor) return false;
             if (card.seat !== currentCardSeat) return false;
@@ -508,18 +512,19 @@
             labelEl.innerText = `一致: ${matchedCard.name}`;
         } else {
             imgEl.src = '';
-            labelEl.innerText = '一致するサンプルなし';
+            labelEl.innerText = '一致するサンプル画像なし';
         }
 
-        // 逆引きモードのコンテンツ生成
+        // 逆引き判定の更新
         generateReverseResults();
 
+        // 備考文言の更新
         let seatNote = currentCardSeat === '' ? 
             "<br>⚠️ <strong>【備考】</strong> シート権限がないため、<strong>観覧席には座れません</strong>。" : 
-            `<br>ℹ️ <strong>【備考】</strong> シート種別（<strong>${currentCardSeat}</strong>）の観覧席利用が可能[cite: 10]。`;
+            `<br>ℹ️ <strong>【備考】</strong> シート種別（<strong>${currentCardSeat}</strong>）の観覧席利用が可能です[cite: 10]。`;
 
         document.getElementById('infoText').innerHTML = `
-            <strong>【現在の設定】</strong> [ カラー: <strong>${currentCardColor}</strong> ｜ 数値: <strong>${activeCardNums.length > 0 ? activeCardNums.join(', ') : 'なし'}</strong> ｜ シート: <strong>${currentCardSeat || 'なし'}</strong> ]
+            <strong>【現在の設定】</strong> [ カラー: <strong>${currentCardColor}</strong> ｜ 数値エリア: <strong>${activeCardNums.length > 0 ? activeCardNums.join(', ') : 'なし'}</strong> ｜ シート: <strong>${currentCardSeat || 'なし'}</strong> ]
             ${seatNote}
         `;
     }
@@ -557,6 +562,7 @@
         container.innerHTML = html;
     }
 
+    // 初期化実行
     window.onload = function() {
         selectCardColor('BLUE');
         activeCardNums = ['2'];

@@ -260,6 +260,36 @@
             font-size: 0.95rem;
         }
 
+        /* 事例追加フォームのスタイル */
+        .custom-example-box {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            border: 1px dashed #cbd5e1;
+        }
+        .custom-input {
+            width: 100%;
+            padding: 8px;
+            font-size: 0.85rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            margin-top: 6px;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+        }
+        .custom-btn {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .custom-btn:hover { background: #047857; }
+
         /* サンプルカード画像プレビュー */
         .card-preview-box {
             border: 2px solid #cbd5e1;
@@ -388,6 +418,13 @@
             <div id="reverseResultContent">
                 <!-- 動的に生成 -->
             </div>
+
+            <!-- 画面上から事例を追加するフォーム -->
+            <div class="custom-example-box">
+                <div style="font-size: 0.8rem; font-weight: bold; color: #334155;">➕ この条件に新しい「関係者の例（事例）」を追加する：</div>
+                <input type="text" id="customExampleInput" class="custom-input" placeholder="例：公式記録員、医療スタッフ など">
+                <button class="custom-btn" onclick="saveCustomExample()">この事例を登録・反映する</button>
+            </div>
         </div>
     </div>
 
@@ -415,6 +452,17 @@
         { color: 'RED', nums: ['4', '5', '6'], seat: '', name: 'オブザーバー', img: 'acr_observer.png' },
         { color: 'RED', nums: [], seat: '', name: 'プレステージパートナー', img: 'acr_partner.png' }
     ];
+
+    // 初期デフォルトの事例データ（キー: "カラー|数値(カンマ区切り)|シート"）
+    let customExamples = {
+        'WHITE||': '警備員、交通誘導員など',
+        'WHITE|4|P': 'ジャーナリスト、記者、フォトグラファーなど',
+        'RED|2|': '音響スタッフ、会場エンジニアなど',
+        'BLUE|2|A': '選手、チーム関係者など',
+        'BLUE|2,4,5,6|VIP': '選手団団長、OCA会長など',
+        'RED|4,5,6|': 'オブザーバー、大会監視員など',
+        'RED||': 'プレステージパートナー、スポンサー関係者など'
+    };
 
     function switchMode(mode) {
         currentMode = mode;
@@ -447,17 +495,30 @@
         updateUI();
     }
 
-    // 現在の条件に一致する「想定される着用・担当者（事例）」を判定する関数
-    function getMatchedExample(color, nums, seat) {
+    function getExampleKey(color, nums, seat) {
         const numStr = [...nums].sort().join(',');
-        if (color === 'WHITE' && numStr === '4' && seat === 'P') return 'ジャーナリスト、記者、フォトグラファーなど';
-        if (color === 'WHITE' && numStr === '' && seat === '') return '警備員、交通誘導員、一般スタッフなど';
-        if (color === 'RED' && numStr === '2' && seat === '') return '音響スタッフ、会場エンジニア、舞台運営スタッフなど';
-        if (color === 'BLUE' && numStr === '2' && seat === 'A') return '選手、チーム関係者など';
-        if (color === 'BLUE' && numStr === '2,4,5,6' && seat === 'VIP') return '選手団団長、OCA会長、要人関係者など';
-        if (color === 'RED' && numStr === '4,5,6' && seat === '') return 'オブザーバー、大会監視員など';
-        if (color === 'RED' && numStr === '' && seat === '') return 'プレステージパートナー、スポンサー関係者など';
-        return '該当する特定事例（一般・その他スタッフ等）';
+        return `${color}|${numStr}|${seat}`;
+    }
+
+    function getMatchedExample(color, nums, seat) {
+        const key = getExampleKey(color, nums, seat);
+        if (customExamples[key]) {
+            return customExamples[key];
+        }
+        return '一般スタッフ、その他関係者';
+    }
+
+    function saveCustomExample() {
+        const inputVal = document.getElementById('customExampleInput').value.trim();
+        if (!inputVal) {
+            alert('追加する事例を入力してください。');
+            return;
+        }
+        const key = getExampleKey(currentCardColor, activeCardNums, currentCardSeat);
+        customExamples[key] = inputVal;
+        document.getElementById('customExampleInput').value = '';
+        alert('新しい事例を登録しました！');
+        updateUI();
     }
 
     function updateUI() {
@@ -533,7 +594,7 @@
 
         document.getElementById('infoText').innerHTML = `
             <strong>【現在の設定】</strong> [ カラー: <strong>${currentCardColor}</strong> ｜ 数値エリア: <strong>${activeCardNums.length > 0 ? activeCardNums.join(', ') : 'なし'}</strong> ｜ シート: <strong>${currentCardSeat || 'なし'}</strong> ]<br>
-            👤 <strong>想定される事例・役割:</strong> ${exampleText}
+            👤 <strong>想定される関係者の例:</strong> ${exampleText}
             ${seatNote}
         `;
     }
@@ -543,7 +604,7 @@
         let html = '<ul class="acp-list">';
 
         const exampleText = getMatchedExample(currentCardColor, activeCardNums, currentCardSeat);
-        html += `<li class="acp-item" style="border-left-color: #059669; background: #ecfdf5;"><strong>👤 想定される事例・役割</strong>${exampleText}</li>`;
+        html += `<li class="acp-item" style="border-left-color: #059669; background: #ecfdf5;"><strong>👤 想定される関係者の例</strong>${exampleText}</li>`;
 
         let accessibleAreas = [];
         if (currentCardColor === 'BLUE') accessibleAreas.push('BLUE（競技ゾーン）および下位のRED・WHITEエリア全般[cite: 4, 5]');
